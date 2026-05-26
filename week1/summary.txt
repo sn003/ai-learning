@@ -1,0 +1,182 @@
+Chapter1: Neural Networks
+
+It is the core behind AI. Just how humans identify whether an animal in the photo is Cat or Dog, the Neural networks learn to identify the animal by seeing millions of data.
+
+You show 100s of photos, every time you say whether it is right or wrong and It adjusts it's internal numbers and make the next prediction.
+
+After millions of rounds, it would predict accurately. These internal numbers are called weights or parameters. A 7 billion parameter model has 7 billion adjustable numbers.
+
+During training, all 7 billions parameters or knobs are turned on. In case of Radio, we have one know we adjust the frequency. In case of 7 billion model, we have so many knobs to adjust.
+
+During Inference (when user asks a query) those 7 billion parameters/knobs are frozen.
+
+Chapter 2: Transformers
+
+Before Transformers, the Models used to read data sequentially and by the time it reads 100th data the data at the beginning it would have forgotten(Could remember upto the memory capacity)
+
+It was not context aware.
+
+This architecture is powering all the Modern AI tools like chatGPT, Claude , Gemini and others.
+
+Transformers take a photo of the whole input at once. Every word can directly look into the other words and decide how related they are. 
+
+
+
+Transformers can have many layers - in GPT3 it has 96 layers . each layer has encoder and FFN.
+
+FFN - Feed forward Network
+Layer1( Encoder + FFN) --> Layer2(Encoder + FFN) --> ....--> Layer 96( Encoder + FFN) -- > Decoder (predicts the next word) 
+
+
+
+Chapter 3: Tokens and Embedding
+
+The text is divided into tokens. The tokenizer is a fixed lookup table.
+
+For example: 'The cat sat on the mat because it was tired.'
+
+The model builds a huge dictionary for the possible words. 
+
+here: 'T' could be one token, 'he' could be another token,
+      'cat' is one token, 'mat' is another token
+      ' ' is one token, 
+
+Basically the input is divided into tokens. It depends on the Model. GPT3 has 50287 ~ tokens. 
+
+Computers cannot understand text, so these text needs to be translated to Numbers.
+
+['the cat sat on the mat because it was tired'] --> [45, 580, 1024, 5990, 2008, 345, 902, 9800, 600, 4001] Usually a token will have 4 characters. 
+
+In the above example: len('the cat sat on the mat because it was tired') -->43 --> 43/4 --> ~11 tokens
+
+
+Now imagine a dictionary of 50287 keys , each key represents token and the value is 12288 Vector. That means each token is represented as 12288 vector. (Consider array of 12288 elements) 
+
+This is called embedding matrix -- 50287 * 12288 This 12288 is GPT 3 example and this values are learnt during the training.  
+
+Chapter 4: Attention
+
+Each token is evaluated against other tokens and get to know the relevance. 
+
+How much should I focus on you when understanding myself ? The attention connects 'it' to 'cat' in the example. Attention is computed for each of the token against all the other tokens.
+That's the reason so much GPU compute is needed. 
+
+The compute cost scales quadratically - meaning 4 times if the input length doubles. 
+
+7 tokens * 12288
+14 tokens * 12888
+
+
+     the   cat  sat  down
+
+the  0.4  0.2  0.3  0.1
+
+cat  0.2   0.4  0.1  0.3
+
+sat  0.4   0.2  0.2  0.2
+
+down 0.5  0.1   0.3 0.1
+
+4 * 4 -- 16 computation. 
+
+If the input length doubles -- 8 * 8 -- 64Computation 
+
+64/16 ---4x more times.
+
+
+
+GPT 3 Architecture
+
+Parameters - 175 Billion
+
+Vocabulary size - 50257 (In some places i have used 50287)
+
+Hidden dimension (d_model) 12288
+
+No of layers 96
+
+Attention heads per layer 96
+
+Head dimension 12288/96 - 128
+
+FFN Inner dimension 12288 * 4 = 49152
+
+Context Window 2048 Tokens
+
+The input text (TOkens) travels through all the layers. 
+
+Layer1: 96 heads. Each head computes the attention.
+
+Each head has Q, K, V (Query, Key and Value Vectors) 
+
+Q - Token * W_Q --> [11 * 12288 ] * [12288 * 12288]
+
+K - Token * W_K --> [11 * 12288 ] * [12288 * 12288]
+
+V - Token * W_V --> [11 * 12288 ] * [12288 * 12288]
+
+Since layer has 96 heads 12288 dimension / 96 == 128
+
+So each head in each layer will have dimension of 128
+
+Each head computes attention independently. 
+
+Concatenate 96 heads back to 12288.
+
+Feed forward Network (Expands and collapse ) 12288 Is spread across 12288 * 4 = 49152 and then again collapsed into 12288
+
+In the FFN, 
+
+Step1: 12288 Nos * W1 Matrix (12288 * 49152) --> 11 * 49152 (Expand)
+Step2: Apply activation function (Turn negatives to zero)
+Step3: 49152 numbers * W2 matrix --> [11 * 12288] (Collapse)
+
+4x multiplier is a design convention in the original Attention paper (Attention is all you need)
+
+FFN -- W1 --603 M parameters
+FFN -- W2 --603 M parameters ~1.2 Billion parameters. 
+
+* 96 layers = 96 * 1.2 Billion = ~115 Billion parameters.
+
+FFN accounts for the 2/3 of all parameters in GPT3. Most of the Model's knowledge is stored in FFN in the expand , compress FFN layers.
+
+What get's stored in the KV Cache
+
+=====================================
+
+When generating text, Model stores K and V For every processed Token
+
+Per Token, Per layer
+
+K: 96 heads * 128 = 12288 Numbers
+V: 96 heads * 128 = 12288 Numbers
+
+KV Cache Formula:
+
+K - 1 Entity 
+
+V - 1 Entity
+
+Each no is stored in FP16 (Floating Point 16) which is 2 bytes
+
+KV Cache Per token = 2 * 2´* no_of_heads * head_dimension
+
+KV Cache Per request = KV Cache Per token * Context Length
+
+KV Cache Per Batch = KV Cache Per request * Batch Size
+
+Chapter What each Layer Learns:
+
+Each Layer learns Different things. First few layers learn syntax, Basic grammer, relationship, 
+
+Middle layers learn reasoning, Facts
+
+Last layer learns - formatting, styles etc
+
+
+
+
+
+
+
+
